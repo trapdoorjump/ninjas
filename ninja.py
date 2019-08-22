@@ -4,7 +4,8 @@ from pyglet.window import FPSDisplay
 from pyglet.window import mouse
 from random import randint, choice
 import math
-
+import textures
+import skillsClass
 
 def display_window_preload():
     global window
@@ -14,25 +15,21 @@ def display_window_preload():
     global main_batch
     main_batch = pyglet.graphics.Batch()
 
-def texture_load(path, sequenceStart, sequenceEnd, width, height, animationInterval, looping):
-    image = pyglet.image.load(path)
-    sequence = pyglet.image.ImageGrid(image, sequenceStart, sequenceEnd, item_width=width, item_height=height)
-    texture = pyglet.image.TextureGrid(sequence)
-    sprite = pyglet.image.Animation.from_image_sequence(texture[0:], animationInterval, loop=looping)
-    return sprite
-
 def texture_load_all():
     global texture_block_50x50
     texture_block_50x50 = pyglet.image.load('sprites/block50x50.png')
 
     global texture_ninja_blue
-    texture_ninja_blue = texture_load('sprites/ninja-blue.png', 1, 2, 100, 100, 0.5, True)
+    texture_ninja_blue = textures.texture_load('sprites/ninja-gray.png', 1, 2, 100, 100, 0.5, True)
 
     global texture_shuriken
-    texture_shuriken = texture_load('sprites/ninja-shuriken-25x.png', 1, 4, 25, 25, 0.02, True)
+    texture_shuriken = textures.texture_load('sprites/ninja-shuriken-25x.png', 1, 4, 25, 25, 0.02, True)
 
     global texture_ninja_gray
-    texture_ninja_gray = texture_load('sprites/ninja-blue.png', 1, 2, 100, 100, 0.5, True)
+    texture_ninja_gray = textures.texture_load('sprites/ninja-blue.png', 1, 2, 100, 100, 0.5, True)
+
+    global texture_slash
+    texture_slash = pyglet.image.load('sprites/air_slash_64x.png')
 
 def display_fps_show():
     global window
@@ -40,118 +37,115 @@ def display_fps_show():
     display_fps = FPSDisplay(window)
     display_fps.label.font_size = 10
 
+def display_hud():
+    text_hp = pyglet.text.Label("HP", x=1000 , y=650, batch=main_batch)
+    text_hp.italic = True
+    text_hp.bold = True
+    text_hp.font_size = 16
 
-#init
+    text_player_hp = pyglet.text.Label(str(5), x=1100, y=600, batch=main_batch)
+    text_player_hp.color = (0, 100, 50, 255)
+    text_player_hp.font_size = 22
 
-display_window_preload()
+    global text_intro
+    text_intro = pyglet.text.Label("Press space to start", x=550 , y=400)
+    text_intro.anchor_x = "center"
+    text_intro.anchor_y = "center"
+    text_intro.italic = True
+    text_intro.bold = True
+    text_intro.font_size = 40
 
-display_fps_show()
+def overworld_map_spawn():
+    global walls
+    walls = []
 
-texture_load_all()
+    for index in range(11):
+        walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=0, y=150 + index * 50, batch=main_batch)) 
+        walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=900, y=150 + index * 50, batch=main_batch)) 
+        walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=1150, y=150 + index * 50, batch=main_batch)) 
+    for index in range(24):
+        walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=index*50, y=100, batch=main_batch)) 
+        walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=index*50, y=700, batch=main_batch)) 
 
-text3 = pyglet.text.Label("HP", x=1000 , y=650, batch=main_batch)
-text3.italic = True
-text3.bold = True
-text3.font_size = 16
+def overworld_units_spawn():
+    global player
+    player = pyglet.sprite.Sprite(texture_ninja_blue, x=200, y=200, batch=main_batch)   
 
-numb_player_health = pyglet.text.Label(str(5), x=1100, y=600, batch=main_batch)
-numb_player_health.color = (0, 100, 50, 255)
-numb_player_health.font_size = 22
+def audio_load():
+    global sound_shuriken
+    sound_shuriken = pyglet.media.load('res/sounds/shuriken.wav', streaming=False)   
 
-intro_text = pyglet.text.Label("Press space to start", x=550 , y=400)
-intro_text.anchor_x = "center"
-intro_text.anchor_y = "center"
-intro_text.italic = True
-intro_text.bold = True
-intro_text.font_size = 40
+    global sound_slash
+    sound_slash = pyglet.media.load('sounds/slash.wav', streaming=False)   
 
-player = pyglet.sprite.Sprite(texture_ninja_blue, x=200, y=200, batch=main_batch)
+def constants_load():
+    global started
+    started = False
 
-walls = []
+    global moveX, moveY, moving, player_movespeed
+    moveX = 0
+    moveY = 0
+    moving = False
+    player_movespeed = 200
 
-for index in range(11):
-    walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=0, y=150 + index * 50, batch=main_batch)) 
-    walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=900, y=150 + index * 50, batch=main_batch)) 
-    walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=1150, y=150 + index * 50, batch=main_batch)) 
-for index in range(24):
-    walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=index*50, y=100, batch=main_batch)) 
-    walls.append(pyglet.sprite.Sprite(texture_block_50x50, x=index*50, y=700, batch=main_batch)) 
+    global mouseX , mouseY, anglePlayer
+    mouseX = 0
+    mouseY = 0
+    anglePlayer = 0
+
+    global fireClick, fire2, player_laser2_list, player_fire_rate
+    fireClick = False
+    fire2 = False
+    
+    player_laser2_list = []
+    player_fire_rate = 0
     
 
-# explosion sound
-explosion = pyglet.media.load('res/sounds/exp_01.wav', streaming=False)
-player_gun_sound = pyglet.media.load('res/sounds/shuriken.wav', streaming=False)
+    skills = []
+    skills.append(skillsClass.Skills(key.Q, 1, 'shuriken', 2))
 
-player_laser_list = []
-player_laser2_list = []
-player_laser2b_list = []
-enemy_laser_list = []
-enemy_list = []
-bg_list = []
-explosion_list = []
+    global abilityQCooldown, abilityQCooldownMax, moveShurikenX, moveShurikenY, shurikenRangeMax, shurikenRange
+    abilityQCooldown = 0
+    abilityQCooldownMax = 2
+    moveShurikenX = 0
+    moveShurikenY = 0
+    shurikenRangeMax = 400
+    shurikenRange = 0
+    
+    global abilityWCooldown, abilityWCooldownMax, moveSlashX, moveSlashY, slashRangeMax, slashRange, player_slash_list
+    abilityWCooldown = 0
+    abilityWCooldownMax = 0.5
+    moveSlashX = 0
+    moveSlashY = 0
+    slashRangeMax = 100
+    slashRange = 0
+    player_slash_list = []
 
-# when creating a new enemy, it will choose a random direction from the list below
-directions = [1, -1]
+def initialization():
+    display_window_preload()
+    display_fps_show()
+    texture_load_all()
+    display_hud()
+    overworld_map_spawn()
+    overworld_units_spawn()
+    audio_load()
+    constants_load()
 
-player_speed = 200
-left = False
-right = False
-up = False
-down = False
-destroyed_enemies = 0 # this for only stats
-next_wave = 0
-fire = False
-fire2 = False
-player_fire_rate = 0
-enemy_fire_rate = 0
-ufo_head_spawner = 0
-enemy_ship_spawner = 0
-ufo_head_spawner_count = 1
-enemy_ship_spawner_count = 5
-preloaded =  False
-player_health = 5
-player_is_alive = True
-explode_time = 2
-enemy_explode = False
-shake_time = 0
-game = False
-flash_time = 1
-player_flash = False
-abilityQCooldown = 0
-abilityQCooldownMax = 0.5
-moveX = 0
-moveY = 0
-moving = False
-moveShurikenX = 0
-moveShurikenY = 0
-moveShuriken = False
-mouseX = 0
-mouseY = 0
-shurikenTime = 2
-shurikenRangeMax = 400
-shurikenRange = 0
-anglePlayer = 0
-
-
+############## BEFORE EVENTS ####################
+initialization()
 
 @window.event
 def on_draw():
     window.clear()
-    if not preloaded:
-        preload()
-    for bg in bg_list:
-        bg.draw()
-    if game:
+    if started:
         main_batch.draw()
     else:
-        intro_text.draw()
-    if not player_is_alive:
-        game_over_text.draw()
+        text_intro.draw()
     display_fps.draw()
 
 @window.event
 def on_mouse_press(x, y, button, modifiers):
-    global player, anglePlayer
+    global player, anglePlayer, fire2, fireClick
     degress = math.degrees(math.atan2(y-player.y, x-player.x))
     if degress < 0:
         degress += 360
@@ -161,6 +155,14 @@ def on_mouse_press(x, y, button, modifiers):
         moveX = x
         moveY = y
         moving = True
+    if (button == 1):
+        fireClick = True
+
+@window.event
+def on_mouse_release(x, y, button, modifiers):
+    global fireClick
+    if (button == 1):
+        fireClick = False
 
 @window.event
 def on_mouse_motion(x, y, dx, dy):
@@ -170,36 +172,16 @@ def on_mouse_motion(x, y, dx, dy):
 
 @window.event
 def on_key_press(symbol, modifiers):
-    global  right, left, up, down, fire, fire2, game
-    if symbol == key.RIGHT:
-        right = True
-    if symbol == key.LEFT:
-        left = True
-    if symbol == key.UP:
-        up = True
-    if symbol == key.DOWN:
-        down = True
+    global  fire2, started
     if symbol == key.SPACE:
-        fire = True
-        if not game:
-            game = True
-            fire = False
+        if not started:
+            started = True
     if symbol == key.Q:
         fire2 = True
 
 @window.event
 def on_key_release(symbol, modifiers):
-    global right, left, up, down, fire, fire2
-    if symbol == key.RIGHT:
-        right = False
-    if symbol == key.LEFT:
-        left = False
-    if symbol == key.UP:
-        up = False
-    if symbol == key.DOWN:
-        down = False
-    if symbol == key.SPACE:
-        fire = False
+    global fire2
     if symbol == key.Q:
         fire2 = False
 
@@ -209,54 +191,45 @@ def angle(x1, x2, y1, y2):
         angleValue += 360
     return angleValue
 
-def player_move(entity, dt):
-    if right and entity.x < 800:
-        entity.x += player_speed * dt
-    if left and entity.x > 100:
-        entity.x -= player_speed * dt
-    if up and entity.y < 680:
-        entity.y += player_speed * dt
-    if down and entity.y > 35:
-        entity.y -= player_speed * dt   
-
-def preload():
-    global preloaded
-    preloaded = True
-
-def player_shoot(dt):
-    global player_fire_rate
-    player_fire_rate -= dt
-    if player_fire_rate <= 0:
-        player_laser_list.append(pyglet.sprite.Sprite(texture_shuriken, player.x + 32, player.y + 32, batch=main_batch))
-        player_fire_rate += 0.2
-        if player_is_alive:
-            player_gun_sound.play()
-
 def player_shoot2(dt):
-    global player_fire_rate, abilityQCooldown, moveShurikenX, moveShurikenY, mouseX, mouseY, moveShuriken, shurikenRange
+    global player_fire_rate, abilityQCooldown, abilityQCooldownMax, moveShurikenX, moveShurikenY, mouseX, mouseY, shurikenRange, player_laser2_list, moving
 
     if (abilityQCooldown >= abilityQCooldownMax):
         player_fire_rate -= dt
         if player_fire_rate <= 0:
             player_laser2_list.append(pyglet.sprite.Sprite(texture_shuriken, player.x + 32, player.y + 32, batch=main_batch))
-            player_laser2b_list.append(0)
             player_fire_rate += 0.2
-            if player_is_alive:
-                moveShurikenX = mouseX
-                moveShurikenY = mouseY
-                moveShuriken = True
-                abilityQCooldown = 0
-                shurikenRange = 0
-                player_gun_sound.play()
+            moveShurikenX = mouseX
+            moveShurikenY = mouseY
+            abilityQCooldown = 0
+            shurikenRange = 0
+            sound_shuriken.play()
+            moving = False
 
+def slashCast(dt):
+    global player_fire_rate, abilityWCooldown, abilityWCooldownMax, moveSlashX, moveSlashY, mouseX, mouseY, slashRange, player_slash_list, moving
+
+    if (abilityWCooldown >= abilityWCooldownMax):
+        player_fire_rate -= dt
+        if player_fire_rate <= 0:
+            missile = pyglet.sprite.Sprite(texture_block_50x50, player.x + 50, player.y + 50, batch=main_batch)
+            missile.image.anchor_x = missile.image.width / 2
+            missile.image.anchor_y = missile.image.height / 2
+            missile.rotation = float(angle(mouseX, player.x, mouseY, player.y)) 
+            if (missile.rotation > 70 and missile.rotation < 120) or (missile.rotation > 200 and missile.rotation < 300):
+                missile.rotation += 180
+            player_slash_list.append(missile)
+            player_fire_rate += 0.2
+            moveSlashX = mouseX
+            moveSlashY = mouseY
+            abilityWCooldown = 0
+            slashRange = 0
+            sound_slash.play()
+            moving = False
 
 def update_player_shoot(dt):
-    global moveShurikenX, moveShurikenY, moveShuriken, shurikenTime, shurikenRange, shurikenRangeMax
-    for lsr in player_laser_list:
-        lsr.y += 300 * dt
-        if lsr.y > 700: 
-            player_laser_list.remove(lsr)
-            lsr.delete()
+    global moveShurikenX, moveShurikenY, shurikenRange, shurikenRangeMax, player_laser2_list
+
     for lsr in player_laser2_list:
         msx = 450
         msy = 450
@@ -289,7 +262,43 @@ def update_player_shoot(dt):
 
         if (shurikenRange > shurikenRangeMax):
             player_laser2_list.remove(lsr)
-            lsr.delete()    
+            lsr.delete() 
+
+    global  moveSlashX, moveSlashY,  slashRange, slashRangeMax, player_slash_list
+
+    for lsr in player_slash_list:
+        msx = 500
+        msy = 500
+        diferenceX = moveSlashX - lsr.x
+        diferenceY = moveSlashY - lsr.y
+
+        if diferenceX < 0:
+            diferenceX = diferenceX * -1
+        if diferenceY < 0:
+            diferenceY = diferenceY * -1
+
+        if diferenceX > diferenceY:
+            msy = msy * (diferenceY/diferenceX)
+        elif diferenceX < diferenceY:
+            msx = msx * (diferenceX/diferenceY)
+
+        if (lsr.x < moveSlashX):
+            lsr.x += msx * dt  
+        if (lsr.y < moveSlashY):
+            lsr.y += msy * dt 
+        if (lsr.x > moveSlashX):
+            lsr.x -= msx * dt  
+        if (lsr.y > moveSlashY):
+            lsr.y -= msy * dt 
+
+        msy = (msy * dt)
+        msx = (msx * dt)
+
+        slashRange += math.sqrt( ( msy * msy ) + (msx  * msx ) )
+
+        if (slashRange > slashRangeMax):
+            player_slash_list.remove(lsr)
+            lsr.delete()       
 
 def collision(entity, list):
     global moving
@@ -307,16 +316,14 @@ def collision(entity, list):
                 moving = False
                 return True 
 
-
-
 def update(dt):
-    global abilityQCooldown, abilityQCooldownMax, player_speed, walls
-    if game:
+    global abilityQCooldown, abilityQCooldownMax, player_movespeed, walls, abilityWCooldown, abilityWCooldownMax
+    if started:
         global moving, moveX, moveY
         if moving == True:
             if not (collision(player, walls)):
-                msx = player_speed
-                msy = player_speed
+                msx = player_movespeed
+                msy = player_movespeed
                 diferenceX = moveX - player.x
                 diferenceY = moveY - player.y
 
@@ -343,14 +350,18 @@ def update(dt):
         
 
         abilityQCooldown += dt
+        abilityWCooldown += dt
         if abilityQCooldown > abilityQCooldownMax:
             abilityQCooldown = abilityQCooldownMax
-        player_move(player, dt)
-        if fire:
-            player_shoot(dt)
+        if abilityWCooldown > abilityWCooldownMax:
+            abilityWCooldown = abilityWCooldownMax
         if fire2:
             player_shoot2(dt)
+        if fireClick:
+            slashCast(dt)
         update_player_shoot(dt)
+
+##########################################################################
 
 if __name__ == "__main__":
     pyglet.clock.schedule_interval(update, 1.0/60)
