@@ -6,6 +6,7 @@ from random import randint, choice
 import math
 import textures
 import skillsClass
+import abilities
 
 def display_window_preload():
     global window
@@ -121,6 +122,9 @@ def constants_load():
     slashRange = 0
     player_slash_list = []
 
+    global skillQ, main_batch, player, sound_shuriken, texture_shuriken
+    skillQ = abilities.Shuriken(main_batch, key.Q, player)
+
 def initialization():
     display_window_preload()
     display_fps_show()
@@ -160,9 +164,10 @@ def on_mouse_press(x, y, button, modifiers):
 
 @window.event
 def on_mouse_release(x, y, button, modifiers):
-    global fireClick
-    if (button == 1):
-        fireClick = False
+    pass
+    #global fireClick
+    #if (button == 1):
+    #    fireClick = False
 
 @window.event
 def on_mouse_motion(x, y, dx, dy):
@@ -172,12 +177,13 @@ def on_mouse_motion(x, y, dx, dy):
 
 @window.event
 def on_key_press(symbol, modifiers):
-    global  fire2, started
+    global  started, skillQ, mouseX, mouseY, moving
+
     if symbol == key.SPACE:
         if not started:
             started = True
-    if symbol == key.Q:
-        fire2 = True
+    if symbol == skillQ.key:
+        skillQ.cast(mouseX, mouseY, moving)
 
 @window.event
 def on_key_release(symbol, modifiers):
@@ -227,78 +233,9 @@ def slashCast(dt):
             sound_slash.play()
             moving = False
 
-def update_player_shoot(dt):
-    global moveShurikenX, moveShurikenY, shurikenRange, shurikenRangeMax, player_laser2_list
-
-    for lsr in player_laser2_list:
-        msx = 450
-        msy = 450
-        diferenceX = moveShurikenX - lsr.x
-        diferenceY = moveShurikenY - lsr.y
-
-        if diferenceX < 0:
-            diferenceX = diferenceX * -1
-        if diferenceY < 0:
-            diferenceY = diferenceY * -1
-
-        if diferenceX > diferenceY:
-            msy = msy * (diferenceY/diferenceX)
-        elif diferenceX < diferenceY:
-            msx = msx * (diferenceX/diferenceY)
-
-        if (lsr.x < moveShurikenX):
-            lsr.x += msx * dt  
-        if (lsr.y < moveShurikenY):
-            lsr.y += msy * dt 
-        if (lsr.x > moveShurikenX):
-            lsr.x -= msx * dt  
-        if (lsr.y > moveShurikenY):
-            lsr.y -= msy * dt 
-
-        msy = (msy * dt)
-        msx = (msx * dt)
-
-        shurikenRange += math.sqrt( ( msy * msy ) + (msx  * msx ) )
-
-        if (shurikenRange > shurikenRangeMax):
-            player_laser2_list.remove(lsr)
-            lsr.delete() 
-
-    global  moveSlashX, moveSlashY,  slashRange, slashRangeMax, player_slash_list
-
-    for lsr in player_slash_list:
-        msx = 500
-        msy = 500
-        diferenceX = moveSlashX - lsr.x
-        diferenceY = moveSlashY - lsr.y
-
-        if diferenceX < 0:
-            diferenceX = diferenceX * -1
-        if diferenceY < 0:
-            diferenceY = diferenceY * -1
-
-        if diferenceX > diferenceY:
-            msy = msy * (diferenceY/diferenceX)
-        elif diferenceX < diferenceY:
-            msx = msx * (diferenceX/diferenceY)
-
-        if (lsr.x < moveSlashX):
-            lsr.x += msx * dt  
-        if (lsr.y < moveSlashY):
-            lsr.y += msy * dt 
-        if (lsr.x > moveSlashX):
-            lsr.x -= msx * dt  
-        if (lsr.y > moveSlashY):
-            lsr.y -= msy * dt 
-
-        msy = (msy * dt)
-        msx = (msx * dt)
-
-        slashRange += math.sqrt( ( msy * msy ) + (msx  * msx ) )
-
-        if (slashRange > slashRangeMax):
-            player_slash_list.remove(lsr)
-            lsr.delete()       
+def eventSkills(dt):
+    global skillQ
+    skillQ.loop(dt)     
 
 def collision(entity, list):
     global moving
@@ -359,7 +296,8 @@ def update(dt):
             player_shoot2(dt)
         if fireClick:
             slashCast(dt)
-        update_player_shoot(dt)
+        eventSkills(dt)
+        
 
 ##########################################################################
 
