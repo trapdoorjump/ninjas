@@ -1,39 +1,21 @@
 import pyglet
 import math
 import textures
+import abilities
 
-class Missile():
-    def __init__(self, player, sprite, speed):
-        self.moveX = 0
-        self.moveY = 0
-        self.range = 0
-        self.moveTypeX = 0
-        self.moveTypeY = 0
-        self.sprite = sprite
-        self.player = player
-        self.activated = False
-        self.speedX = 0
-        self.speedY = 0
-
-    def __del__(self):
-        self.activated = False
-        self.sprite.delete()
-
-
-
-class Shuriken():
+class Slash():
     def __init__(self, batch, player):
         self.batch = batch
         self.player = player
         self.id = 0
-        self.name = 'shuriken'
+        self.name = 'slash'
         self.cooldownTime = 0
-        self.cooldown = 2
-        self.rangeMax = 400
-        self.speed = 450
+        self.cooldown = 0.3
+        self.rangeMax = 100
+        self.speed = 500
        
-        self.sound = pyglet.media.load('sounds/shuriken.wav', streaming=False) 
-        self.texture = textures.texture_load('sprites/ninja-shuriken-25x.png', 1, 4, 25, 25, 0.02, True)
+        self.sound = pyglet.media.load('sounds/slash.wav', streaming=False) 
+        self.texture = pyglet.image.load('sprites/slash.png')
         self.list = []
 
         
@@ -41,9 +23,9 @@ class Shuriken():
         if (self.cooldownTime >= self.cooldown):
             self.cooldownTime = 0
 
-            sprite = pyglet.sprite.Sprite(self.texture, self.player.x + 50, self.player.y + 50, batch=self.batch)
+            sprite = pyglet.sprite.Sprite(self.texture, self.player.x, self.player.y + 20, batch=self.batch)
             
-            object = Missile(self.player, sprite, self.speed)
+            object = abilities.Missile(self.player, sprite, self.speed)
             self.list.append(object)
 
             object.speedX = self.speed
@@ -102,3 +84,6 @@ class Shuriken():
                     del object
             
         self.cooldownTime += dt 
+
+
+
